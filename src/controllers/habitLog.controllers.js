@@ -61,14 +61,54 @@ const getHabitLogs = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You are not allowed to access this habit");
     }
 
-    const habitLogs = await HabitLog.find({habitId: habit._id}).sort({date: 1})
+    const habitLogs = await HabitLog.find({ habitId: habit._id }).sort({ date: 1 })
+
+    // Algorithm to calculate streak
+
+    // 1. Normalize today’s date
+    // 2. Set expectedDate = today
+    // 3. Initialize streak = 0
+    // 4. While true:
+    // - Look for a HabitLog whose date === expectedDate
+    // - If no log exists → STOP
+    // - If log exists but completed === false → STOP
+    //     Else:
+    //    streak++
+    //     expectedDate = expectedDate - 1 day
+    //5.. Return streak
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0)
+
+    let expectedDate = new Date(today)
+    let streak = 0;
+
+    const logMap = new Map();
+
+    for (const log of habitLogs) {
+        const logDate = new Date(log.date);
+        logDate.setHours(0, 0, 0, 0);
+        logMap.set(logDate.getTime(), log);
+    }
+
+    while (true) {
+        const log = logMap.get(expectedDate.getTime());
+
+        if (!log || log.completed !== true) {
+            break;
+        }
+
+        streak++;
+        expectedDate.setDate(expectedDate.getDate() - 1);
+    }
+
 
     return res.status(200)
-    .json(new ApiResponse(
-        200,
-        habitLogs,
-        "HabitLogs fetched Successfully!"
-    ))
+        .json(new ApiResponse(
+            200,
+            {logs: habitLogs, currentStreak: streak},
+            "HabitLogs with Streak fetched Successfully!"
+        ))
 })
 
 export {
