@@ -26,6 +26,7 @@ const upsertHabitLog = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You are not allowed to access this habit");
     }
 
+    // Normalize date
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
