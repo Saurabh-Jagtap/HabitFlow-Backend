@@ -19,9 +19,9 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 // Archive habit (soft delete)  [archiveHabit]
 
 const createHabit = asyncHandler(async (req, res) => {
-    const {title, description, category} = req.body
+    const { title, description, category } = req.body
 
-    if(!title){
+    if (!title) {
         throw new ApiError(400, "title is required")
     }
 
@@ -32,17 +32,17 @@ const createHabit = asyncHandler(async (req, res) => {
         category: category || ""
     })
 
-    if(!userHabit){
+    if (!userHabit) {
         throw new ApiError(500, "Something went wrong while creating the habit")
     }
 
     return res
-    .status(201)
-    .json(new ApiResponse(
-        201,
-        userHabit,
-        "Habit created Successfully!"
-    ))
+        .status(201)
+        .json(new ApiResponse(
+            201,
+            userHabit,
+            "Habit created Successfully!"
+        ))
 })
 
 const getUserHabits = asyncHandler(async (req, res) => {
@@ -67,7 +67,9 @@ const getHabitById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Habit not found");
     }
 
-    if (habit.userId.toString() !== req.user._id.toString()) {
+    const habitOwnerId = habit.userId._id ? habit.userId._id.toString() : habit.userId.toString()
+
+    if (habitOwnerId !== req.user._id.toString()) {
         throw new ApiError(403, "You are not allowed to access this habit");
     }
 
@@ -77,55 +79,55 @@ const getHabitById = asyncHandler(async (req, res) => {
 })
 
 const updateHabit = asyncHandler(async (req, res) => {
-    const {id} = req.params
-    const {title, description, category} = req.body
+    const { id } = req.params
+    const { title, description, category } = req.body
 
-    if(!title && !description && !category){
-        throw new ApiError(400, "At least one field must be provided for update") 
+    if (!title && !description && !category) {
+        throw new ApiError(400, "At least one field must be provided for update")
     }
 
     const habit = await Habit.findById(id)
 
-    if(!habit || habit.isArchived){
-        throw new ApiError(400, "Habit not found")  
+    if (!habit || habit.isArchived) {
+        throw new ApiError(400, "Habit not found")
     }
 
-    if(req.user._id.toString() !== habit.userId.toString() ){
+    if (req.user._id.toString() !== habit.userId.toString()) {
         throw new ApiError(403, "You are not allowed to update this habit")
     }
 
-    if(title !== undefined){
+    if (title !== undefined) {
         habit.title = title
     }
 
-    if(description !== undefined){
+    if (description !== undefined) {
         habit.description = description
     }
 
-    if(category !== undefined){
+    if (category !== undefined) {
         habit.category = category
     }
 
     await habit.save()
 
     res.status(200)
-    .json(new ApiResponse(
-        200,
-        habit,
-        "Habit Details updated successfully"
-    ))
+        .json(new ApiResponse(
+            200,
+            habit,
+            "Habit Details updated successfully"
+        ))
 })
 
 const archiveHabit = asyncHandler(async (req, res) => {
-    const {id} = req.params 
+    const { id } = req.params
 
     const habit = await Habit.findById(id)
 
-    if(!habit || habit.isArchived){
-        throw new ApiError(400, "Habit not found")  
+    if (!habit || habit.isArchived) {
+        throw new ApiError(400, "Habit not found")
     }
 
-    if(habit.userId.toString() !== req.user._id.toString()){
+    if (habit.userId.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not allowed to update this habit")
     }
 
@@ -133,11 +135,11 @@ const archiveHabit = asyncHandler(async (req, res) => {
     await habit.save()
 
     return res.status(200)
-    .json(new ApiResponse(
-        200,
-        habit,
-        "Habit archived Successfully"
-    ))
+        .json(new ApiResponse(
+            200,
+            habit,
+            "Habit archived Successfully"
+        ))
 
 })
 
