@@ -18,13 +18,13 @@ const getHabitAnalytics = asyncHandler(async (req, res) => {
 
     // return structured response
 
-    const { id } = req.params;
+    const { habitid } = req.params;
 
-    if (!id) {
+    if (!habitid) {
         throw new ApiError(400, "Habit ID is required");
     }
 
-    const habit = await Habit.findById(id);
+    const habit = await Habit.findById(habitid);
 
     if (!habit || habit.isArchived) {
         throw new ApiError(404, "Habit not found");
