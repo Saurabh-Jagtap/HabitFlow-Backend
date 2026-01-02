@@ -123,21 +123,25 @@ const loginUser = asyncHandler(async (req, res) => {
 })
 
 const logoutUser = asyncHandler(async (req, res) => {
-    await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $set: {
-                refreshToken: undefined
-            }
-        },
-        {
-            new: true
+
+    const incomingRefreshToken = req.cookies.refreshToken
+
+    if(incomingRefreshToken){
+        try {
+            const decoded = jwt.sign(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+            await User.findByIdAndUpdate(decoded._id, 
+                {$unset: {refreshToken: 1}}, 
+                {new: true}
+            )
+        } catch (error) {
+            console.log(error)
         }
-    )
+    }
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: "none"
     }
 
     res.status(200)
@@ -191,6 +195,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 })
 
 const userDetails = asyncHandler(async (req, res) => {
+
+    if(!req.user){
+        throw new ApiError(401, "Unauthorized")
+    }
+
     return res.status(200).json(
         new ApiResponse(200, req.user, "User fetched successfully")
     );
