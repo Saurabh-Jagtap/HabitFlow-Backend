@@ -58,7 +58,7 @@ const registerUser = asyncHandler(async (req, res) => {
         email,
         password,
         fullname,
-        avatar: avatar? avatar.secure_url : null
+        avatar: avatar ? avatar.secure_url : null
     })
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken")
@@ -289,22 +289,74 @@ const updateAvatar = asyncHandler(async (req, res) => {
 const removeAvatar = asyncHandler(async (req, res) => {
     const user = req.user;
 
-    if(!user.avatar){
+    if (!user.avatar) {
         throw new ApiError(400, "No avatar to remove")
     }
 
-    const publicId = user.avatar.split("/").slice(-2).join("/").split(".")[0]; 
+    const publicId = user.avatar.split("/").slice(-2).join("/").split(".")[0];
     await cloudinary.uploader.destroy(publicId);
 
     user.avatar = null;
-    await user.save({validateBeforeSave: false});
+    await user.save({ validateBeforeSave: false });
 
     return res.status(200)
-    .json(new ApiResponse(
-        200,
-        user,
-        "Avatar removed successfully"
-    ))
+        .json(new ApiResponse(
+            200,
+            user,
+            "Avatar removed successfully"
+        ))
+})
+
+const updatePassword = asyncHandler(async (req, res) => {
+    // Input currentPassword and newPassword
+    // Return if currentPassword and newPassword are missing or both are same
+    // fetch user from verifyJWT
+    // compare currentPassword with the password in user db
+    // store newPassword with hash
+    // Set refreshToken as null
+    // Return success message and clearCookies - accessToken and refreshToken
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!(currentPassword && newPassword)) {
+        throw new ApiError(400, "Both current and new password are required")
+    }
+
+    if (currentPassword === newPassword) {
+        throw new ApiError(400, "New Password must be different from current password")
+    }
+
+    const user = await User.findById(req.user._id).select("+password")
+
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
+    const isMatch = await user.isPasswordCorrect(currentPassword)
+
+    if (!isMatch) {
+        throw new ApiError(400, "Current password is incorrect")
+    }
+
+    user.password = newPassword
+    user.refreshToken = null
+    await user.save()
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    };
+
+
+    return res.status(200)
+        .clearCookie("accessToken", cookieOptions)
+        .clearCookie("refreshToken", cookieOptions)
+        .json(new ApiResponse(
+            200,
+            "Password updated Successfully. Log in again"
+        ))
+
 })
 
 export {
@@ -315,5 +367,6 @@ export {
     userDetails,
     updateProfile,
     updateAvatar,
-    removeAvatar
+    removeAvatar,
+    updatePassword
 }
