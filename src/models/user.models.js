@@ -17,6 +17,14 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
+    passwordResetToken: {
+        default: null,
+        type: String
+    },
+    passwordResetExpires: {
+        default: null,
+        type: Date
+    },
     fullname: {
         type: String,
         required: true

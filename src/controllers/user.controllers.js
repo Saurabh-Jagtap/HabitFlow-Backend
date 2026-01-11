@@ -7,6 +7,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import uploadonCloudinary from "../utils/Cloudinary.js";
 import { v2 as cloudinary } from 'cloudinary';
 import jwt from 'jsonwebtoken'
+import crypto from "crypto"
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -174,16 +175,17 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Refresh Token is expired or used")
         }
 
-        const options = {
+        const cookieOptions = {
             httpOnly: true,
-            secure: true
-        }
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        };
 
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user?._id)
 
         return res.status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
+            .cookie("accessToken", accessToken, cookieOptions)
+            .cookie("refreshToken", newRefreshToken, cookieOptions)
             .json(
                 new ApiResponse(
                     200,
@@ -363,7 +365,7 @@ const updatePassword = asyncHandler(async (req, res) => {
 
 const deleteUser = asyncHandler(async (req, res) => {
 
-    if(!req.user || !req.user._id){
+    if (!req.user || !req.user._id) {
         throw new ApiError(401, "Unauthorized request")
     }
 
@@ -391,6 +393,110 @@ const deleteUser = asyncHandler(async (req, res) => {
         ))
 })
 
+const forgotPassword = asyncHandler(async (req, res) => {
+    // ********* Purpose **********
+    // - Generate Token
+    // - Send Email
+
+    // ********* Logic Flow **********
+    // Input email
+    // Validate email exists in body
+    // Find User by email
+    // If not found - return 200 ok [Imp - For security purpose]
+    // If user found - 
+    // Then generate reset-Token
+    // Hash it and store the token and expiry in db
+    // Send email with raw token
+    // Return generic success message
+
+    const { email } = req.body;
+
+    if (!email || email.trim() === "") {
+        throw new ApiError(400, "Email is required")
+    }
+
+    const user = await User.findOne({ email })
+
+    if (!user) {
+        return res.status(200).json(new ApiResponse(200, {}, "Success"))
+    }
+
+    const resetToken = crypto.randomBytes(16).toString('hex')
+
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = Date.now() + 15 * 60 * 1000;
+    await user.save({ validateBeforeSave: false })
+
+    // TODO: send email with resetToken(raw)
+
+    return res.status(200).
+        json(new ApiResponse(
+            200,
+            {},
+            "Success"
+        ))
+
+})
+
+const resetPassword = asyncHandler(async (req, res) => {
+    // ********* Purpose **********
+    // Validate Token
+    // Set new password
+
+    // ********* Logic Flow **********
+    // Input new Password from req.body
+    // Input Token from URL params
+    // Find user:
+    // incomingToken = db reset-Token
+    // incomingToken expiry < db reset-Token expiry
+    // If no user found - Invalid or expired Token
+    // If user found - 
+    // Set new password
+    // clear reset-token fields
+    // clear refreshToken
+    // Return success
+    // User must log in again with new password now.
+
+    const { newPassword } = req.body;
+    const { token } = req.params;
+
+    if (!token || !newPassword || newPassword.trim().length < 6) {
+        throw new ApiError(400, "Invalid token or password")
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+    const user = await User.findOne({ passwordResetToken: hashedToken, passwordResetExpires:{$gt: Date.Now()} })
+
+    if (!user) {
+        throw new ApiError(400, "Invalid or expired Token")
+    }
+
+    user.password = newPassword;
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    user.refreshToken = null;
+    await user.save({validateBeforeSave: false})
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    };
+
+    return res.status(200)
+        .clearCookie("accessToken", cookieOptions)
+        .clearCookie("refreshToken", cookieOptions)
+        .json(new ApiResponse(
+            200,
+            {},
+            "Success"
+        ))
+
+})
+
 export {
     registerUser,
     loginUser,
@@ -401,5 +507,7 @@ export {
     updateAvatar,
     removeAvatar,
     updatePassword,
-    deleteUser
+    deleteUser,
+    forgotPassword,
+    resetPassword
 }
