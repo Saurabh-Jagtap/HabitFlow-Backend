@@ -8,6 +8,7 @@ import uploadonCloudinary from "../utils/Cloudinary.js";
 import { v2 as cloudinary } from 'cloudinary';
 import jwt from 'jsonwebtoken'
 import crypto from "crypto"
+import { sendEmail } from "../utils/sendEmail.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -425,11 +426,41 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
 
+    console.log(
+        `Reset link: ${process.env.FRONTEND_URL}/reset-password/${resetToken}`
+    );
+
     user.passwordResetToken = hashedToken;
     user.passwordResetExpires = Date.now() + 15 * 60 * 1000;
     await user.save({ validateBeforeSave: false })
 
-    // TODO: send email with resetToken(raw)
+    const resetUrl = `${process.env.FRONTEND_URL}/resetPassword/${resetToken}`;
+
+    const emailHtml = `
+  <h2>Password Reset Request</h2>
+  <p>You requested to reset your HabitFlow password.</p>
+  <p>Click the link below to reset it:</p>
+  <a href="${resetUrl}">${resetUrl}</a>
+  <p>This link expires in 15 minutes.</p>
+`;
+
+    try {
+        await sendEmail({
+            to: user.email,
+            subject: "Reset your HabitFlow password",
+            html: emailHtml,
+        });
+    } catch (error) {
+
+        console.log("Email error details:", error);
+
+        // rollback token if email fails
+        user.passwordResetToken = null;
+        user.passwordResetExpires = null;
+        await user.save({ validateBeforeSave: false });
+
+        throw new ApiError(500, "Failed to send reset email");
+    }
 
     return res.status(200).
         json(new ApiResponse(
@@ -468,7 +499,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
-    const user = await User.findOne({ passwordResetToken: hashedToken, passwordResetExpires:{$gt: Date.Now()} })
+    const user = await User.findOne({ passwordResetToken: hashedToken, passwordResetExpires: { $gt: new Date() } })
 
     if (!user) {
         throw new ApiError(400, "Invalid or expired Token")
@@ -478,7 +509,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
     user.refreshToken = null;
-    await user.save({validateBeforeSave: false})
+    await user.save({ validateBeforeSave: false })
 
     const cookieOptions = {
         httpOnly: true,
