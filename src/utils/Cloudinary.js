@@ -1,15 +1,22 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
 const uploadonCloudinary = async (localFilePath) => {
+
   try {
     if (!localFilePath) return null;
+
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+
+    // Debugging: Check if variables are actually being read
+    // (View these in your Render Logs after deploying)
+    console.log("Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
+    console.log("API Key exists?", !!process.env.CLOUDINARY_API_KEY);
+    console.log("API Secret exists?", !!process.env.CLOUDINARY_API_SECRET);
 
     const response = await cloudinary.uploader.upload(
       localFilePath,
@@ -24,8 +31,12 @@ const uploadonCloudinary = async (localFilePath) => {
     console.log(response)
     return response;
   } catch (error) {
-    fs.unlinkSync(localFilePath);
-    console.log(error);
+    console.error("Cloudinary Upload Error:", error);
+
+    if (fs.existsSync(localFilePath)) {
+      fs.unlinkSync(localFilePath);
+    }
+    return null;
   }
 }
 
