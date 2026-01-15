@@ -1,24 +1,10 @@
-import nodemailer from "nodemailer";
+import { Resend } from 'resend';
 
-export const sendEmail = async ({ to, subject, html }) => {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com", // Hardcode this to be safe
-    port: 465,              // CHANGE TO 465
-    secure: true,           // MUST BE TRUE for port 465
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  console.log(`Sending email to ${to}...`);
-  
-  await transporter.sendMail({
-    from: `"HabitFlow Support" <${process.env.SMTP_USER}>`,
-    to,
-    subject,
-    html,
-  });
-  
-  console.log("Email sent successfully");
-};
+resend.emails.send({
+  from: 'onboarding@resend.dev',
+  to: 'saurabhworkspace123@gmail.com',
+  subject: 'Hello World',
+  html: '<p>Congrats on sending your <strong>first email</strong>!</p>'
+});
