@@ -445,23 +445,25 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     const resetUrl = `${process.env.FRONTEND_URL}/resetPassword/${resetToken}`;
 
-    try {
-        await sendEmail({
-            to: user.email,
-            subject: "Reset your HabitFlow password",
-            text: resetUrl, 
+    sendEmail({
+        to: user.email,
+        subject: "Reset your HabitFlow password",
+        text: resetUrl,
+    })
+        .catch(async (error) => {
+            // CODE RUNS IF EMAIL FAILS
+            console.error("Background Email Error:", error.message);
+
+            // Perform the Rollback asynchronously
+            try {
+                user.passwordResetToken = null;
+                user.passwordResetExpires = null;
+                await user.save({ validateBeforeSave: false });
+                console.log("Rollback successful: Token cleared.");
+            } catch (dbError) {
+                console.error("Rollback failed:", dbError);
+            }
         });
-    } catch (error) {
-
-        console.log("Email error details:", error);
-
-        // rollback token if email fails
-        user.passwordResetToken = null;
-        user.passwordResetExpires = null;
-        await user.save({ validateBeforeSave: false });
-
-        throw new ApiError(500, "Failed to send reset email");
-    }
 
     return res.status(200).
         json(new ApiResponse(
