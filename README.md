@@ -25,16 +25,29 @@ To run this project, you will need to add the following environment variables to
 ```env
 PORT=8000
 MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
+CORS_ORIGIN=
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_apikey
+CLOUDINARY_API_SECRET=your_apisecret
+
+# JWT Configuration
+ACCESS_TOKEN_SECRET=your_accesstoken_secret
+ACCESS_TOKEN_EXPIRY=your_accesstoken_expiry
+REFRESH_TOKEN_SECRET=your_refreshtoken_secret
+REFRESH_TOKEN_EXPIRY=your_refreshtoken_expiry
 
 # EmailJS Configuration
 EMAILJS_SERVICE_ID=your_service_id
+EMAILJS_TEMPLATE_ID=your_template_id
+EMAILJS_PUBLIC_KEY=your_emailjs_public_key
+EMAILJS_PRIVATE_KEY=your_emailjs_private_key
 ```
 
 🚀 Getting Started
 1. Clone the repository:
-git clone [https://github.com/your-username/HabitFlow-Backend.git](https://github.com/your-username/HabitFlow-Backend.git)
+git clone [https://github.com/Saurabh-Jagtap/HabitFlow-Backend.git](https://github.com/Saurabh-Jagtap/HabitFlow-Backend.git)
 cd HabitFlow-Backend
 
 2. Install dependencies:
@@ -59,4 +72,3 @@ npm run start
 
 🔗 Deployment
 Deployed live on Render: `https://habitflow-backend-gf9f.onrender.com`
-
