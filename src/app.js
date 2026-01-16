@@ -15,6 +15,15 @@ app.use(cors({
     credentials: true,
 }))
 
+// Adding this temporarily in app.js
+app.use((req, res, next) => {
+  console.log("--------------------------------");
+  console.log("Request from IP:", req.ip);
+  console.log("X-Forwarded-For:", req.headers['x-forwarded-for']);
+  console.log("--------------------------------");
+  next();
+});
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static("public"))
