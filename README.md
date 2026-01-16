@@ -58,5 +58,5 @@ npm run start
 | GET | /api/v1/habits | Fetch all user habits (Protected) |
 
 🔗 Deployment
-Deployed live on Render: [https://habitflow-backend-gf9f.onrender.com]
+Deployed live on Render: `https://habitflow-backend-gf9f.onrender.com`
 
