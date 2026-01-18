@@ -1,4 +1,4 @@
-import express, { urlencoded } from 'express';
+import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import userRouter from './routes/user.routes.js';
@@ -22,6 +22,11 @@ app.use((req, res, next) => {
   console.log("X-Forwarded-For:", req.headers['x-forwarded-for']);
   console.log("--------------------------------");
   next();
+});
+
+// Health check route
+app.get("/health", (req, res) => {
+    res.status(200).json({ status: "Active", message: "Server is running" });
 });
 
 app.use(express.json())
