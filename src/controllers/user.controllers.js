@@ -268,8 +268,10 @@ const updateProfile = asyncHandler(async (req, res) => {
 const updateAvatar = asyncHandler(async (req, res) => {
     // file comes from req.file
     // user comes from req.user
-    // Old avatar file must be deleted before updating
-    // after upload cloudinary returns img url
+    // upload new avatar
+    // delete old avatar from cloudinary if it exists(fetch the old avatar url from db)
+    // update database - save updated avatar url
+    // return user
 
     if (!req.file) {
         throw new ApiError(400, "Avatar file is required")
@@ -277,17 +279,21 @@ const updateAvatar = asyncHandler(async (req, res) => {
 
     const user = req.user
 
-    // Delete old avatar if exists
-    if (user.avatar) {
-        const publicId = user.avatar.split("/").slice(-2).join("/").split(".")[0];
-        await cloudinary.uploader.destroy(publicId);
-    }
-
-    // Upload new avatar after deletion
+    // Upload new avatar first
     const updatedAvatar = await uploadonCloudinary(req.file.path)
 
-    if (!updateAvatar) {
+    if (!updatedAvatar) {
         throw new ApiError(500, "Avatar upload failed")
+    }
+
+    // Delete old avatar if exists
+    if (user.avatar && user.avatar.includes("cloudinary")) {
+        try {
+            const publicId = user.avatar.split("/").slice(-2).join("/").split(".")[0];
+            await cloudinary.uploader.destroy(publicId);
+        } catch (error) {
+            console.log("Error deleting old avatar:", error);
+        }
     }
 
     user.avatar = updatedAvatar.secure_url
