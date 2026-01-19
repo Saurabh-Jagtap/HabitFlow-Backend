@@ -307,8 +307,15 @@ const removeAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No avatar to remove")
     }
 
-    const publicId = user.avatar.split("/").slice(-2).join("/").split(".")[0];
-    await cloudinary.uploader.destroy(publicId);
+    if (user.avatar.includes("cloudinary")){
+        try {
+            const publicId = user.avatar.split("/").slice(-2).join("/").split(".")[0];
+            await cloudinary.uploader.destroy(publicId);
+            
+        } catch (error) {
+            console.log("Error deleting image from Cloudinary:", error?.message || error);
+        }
+    }
 
     user.avatar = null;
     await user.save({ validateBeforeSave: false });
